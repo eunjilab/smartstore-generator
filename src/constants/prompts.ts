@@ -28,7 +28,7 @@ export const DEFAULT_FEMALE_PROMPT = `나는 여성 패션 버티컬 커머스 "
     {"title": "키워드 (4글자 내외)", "desc": "2~3문장으로 구체적인 설명. ~합니다 체로 작성."},
     {"title": "키워드 (4글자 내외)", "desc": "2~3문장으로 구체적인 설명. ~합니다 체로 작성."}
   ],
-  "outfitCopies": ["문구1", "문구2", "문구3", "문구4", "문구5", "문구6"],
+  "outfitCopies": ["문구1", "문구2", ...], // {{outfitImageCount}}개 생성 (코디컷 이미지 개수만큼)
   "detail": {
     "material": "소재 정보",
     "fit": "핏 정보",
@@ -106,7 +106,7 @@ JSON 외에 다른 텍스트 출력하지 마.
 
 ---
 
-## [착장 문구 (6개 필수)]
+## [착장 문구 ({{outfitImageCount}}개 필수)]
 - 한 문장, 사진 보조 역할
 - 예시:
   - "내추럴하게 떨어지는 실루엣"
@@ -157,7 +157,7 @@ export const DEFAULT_MALE_PROMPT = `나는 남성 패션 버티컬 커머스 "�
     {"title": "키워드 (4글자 내외)", "desc": "2~3문장으로 구체적인 설명. ~합니다 체로 작성."},
     {"title": "키워드 (4글자 내외)", "desc": "2~3문장으로 구체적인 설명. ~합니다 체로 작성."}
   ],
-  "outfitCopies": ["문구1", "문구2", "문구3", "문구4", "문구5", "문구6"],
+  "outfitCopies": ["문구1", "문구2", ...], // {{outfitImageCount}}개 생성 (코디컷 이미지 개수만큼)
   "detail": {
     "material": "소재 정보",
     "fit": "핏 정보",
@@ -234,7 +234,7 @@ JSON 외에 다른 텍스트 출력하지 마.
 
 ---
 
-## [착장 문구 (6개 필수)]
+## [착장 문구 ({{outfitImageCount}}개 필수)]
 - 한 문장, 사진 보조 역할
 - 예시:
   - "내추럴하게 떨어지는 실루엣"
@@ -265,12 +265,13 @@ export const STORAGE_KEY_MALE = 'smartstore_prompt_male'
 // 프롬프트에 변수 적용
 export function applyVariables(
   prompt: string,
-  variables: { features?: string; size?: string; colors?: string }
+  variables: { features?: string; size?: string; colors?: string; outfitImageCount?: string }
 ): string {
   return prompt
-    .replace('{{features}}', variables.features || '없음')
-    .replace('{{size}}', variables.size || '미정')
-    .replace('{{colors}}', variables.colors || '미정')
+    .replace(/\{\{features\}\}/g, variables.features || '없음')
+    .replace(/\{\{size\}\}/g, variables.size || '미정')
+    .replace(/\{\{colors\}\}/g, variables.colors || '미정')
+    .replace(/\{\{outfitImageCount\}\}/g, variables.outfitImageCount || '6')
 }
 
 // 저장된 프롬프트 불러오기

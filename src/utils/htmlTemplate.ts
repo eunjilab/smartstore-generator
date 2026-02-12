@@ -20,18 +20,24 @@ interface ProcessedImage {
   processed: string
 }
 
+// 컬러 정보 (page.tsx에서 전달)
+interface ColorInfo {
+  name: string
+  isMain: boolean
+}
+
 export function generateDetailPageHTML(
   images: ProcessedImage[],
-  result: GeneratedResult
+  result: GeneratedResult,
+  colors?: ColorInfo[]
 ): string {
   const mainImage = images.find((img) => img.type === 'main') || images[0]
+  const sizeChartImage = images.find((img) => img.type === 'sizeChart')
   const outfitImages = images.filter((img) => img.type === 'outfit')
-  const detailImages = images.filter((img) => img.type === 'detail')
 
-  // 착장 이미지가 없으면 main 제외한 나머지를 착장으로 처리
-  const actualOutfitImages = outfitImages.length > 0
-    ? outfitImages
-    : images.filter((img, idx) => idx !== 0 && img.type !== 'detail')
+  // 컬러 정보가 없으면 sizeColor에서 추출 시도
+  const colorList = colors || []
+  const mainColor = colorList.find(c => c.isMain)
 
   const html = `
 <!DOCTYPE html>
@@ -61,21 +67,19 @@ export function generateDetailPageHTML(
       display: block;
     }
 
-    /* 대표이미지 + 후킹문구 */
-    .hero-section {
-      position: relative;
-    }
-    .hero-text {
-      padding: 40px 20px;
+    /* 1. 후킹문구 */
+    .hooking-section {
+      padding: 50px 20px;
       text-align: center;
       background: linear-gradient(135deg, #faf5f5 0%, #f5f0f0 100%);
     }
     .hooking-copy {
-      font-size: 28pt;
+      font-size: 32pt;
       font-weight: 700;
       color: #1a1a1a;
       margin-bottom: 12px;
       letter-spacing: -0.5px;
+      line-height: 1.3;
     }
     .size-color-info {
       font-size: 14pt;
@@ -83,7 +87,26 @@ export function generateDetailPageHTML(
       font-weight: 400;
     }
 
-    /* 셀링포인트 섹션 */
+    /* 2. 메인대표사진 */
+    .main-image-section {
+      position: relative;
+    }
+    .main-image-section img {
+      aspect-ratio: 1/1;
+      object-fit: cover;
+    }
+
+    /* 3. 사이즈표 */
+    .size-chart-section {
+      padding: 0;
+      background: #fff;
+    }
+    .size-chart-section img {
+      width: 100%;
+      height: auto;
+    }
+
+    /* 4. 셀링포인트 섹션 */
     .selling-section {
       padding: 50px 24px;
       background: #fff;
@@ -113,12 +136,61 @@ export function generateDetailPageHTML(
       line-height: 1.7;
     }
 
-    /* 착장 섹션 */
+    /* 5. 대표컬러 표시 */
+    .color-display-section {
+      padding: 40px 20px;
+      text-align: center;
+      background: #fafafa;
+      border-top: 1px solid #eee;
+      border-bottom: 1px solid #eee;
+    }
+    .color-title {
+      font-size: 16pt;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 20px;
+      letter-spacing: 2px;
+    }
+    .color-list {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    .color-item {
+      font-size: 14pt;
+      color: #666;
+    }
+    .color-item.active {
+      color: #1a1a1a;
+      font-weight: 600;
+    }
+    .color-dot {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+    .color-dot.filled {
+      background: #1a1a1a;
+    }
+    .color-dot.empty {
+      border: 2px solid #999;
+      background: transparent;
+    }
+
+    /* 6. 대표컬러 코디컷 + 문구 */
     .outfit-section {
       background: #fff;
     }
     .outfit-item {
       position: relative;
+    }
+    .outfit-item img {
+      aspect-ratio: 3/4;
+      object-fit: cover;
     }
     .outfit-text {
       padding: 30px 20px;
@@ -132,29 +204,7 @@ export function generateDetailPageHTML(
       letter-spacing: -0.3px;
     }
 
-    /* 디테일 섹션 */
-    .detail-section {
-      background: #fff;
-      padding-top: 20px;
-    }
-    .detail-title {
-      font-size: 20pt;
-      font-weight: 700;
-      text-align: center;
-      padding: 40px 20px 30px;
-      color: #1a1a1a;
-    }
-    .detail-images {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 2px;
-    }
-    .detail-images img {
-      aspect-ratio: 1/1;
-      object-fit: cover;
-    }
-
-    /* 상품 정보 섹션 */
+    /* 7. 상품 정보 섹션 */
     .product-info-section {
       padding: 40px 24px;
       background: #f9f9f9;
@@ -199,16 +249,25 @@ export function generateDetailPageHTML(
 </head>
 <body>
   <div class="container">
-    <!-- 대표이미지 + 후킹문구 -->
-    <section class="hero-section">
-      <img src="${mainImage?.processed || mainImage?.data}" alt="대표이미지">
-      <div class="hero-text">
-        <h1 class="hooking-copy">${result.hookingCopy}</h1>
-        <p class="size-color-info">${result.sizeColor}</p>
-      </div>
+    <!-- 1. 후킹문구 -->
+    <section class="hooking-section">
+      <h1 class="hooking-copy">${result.hookingCopy}</h1>
+      <p class="size-color-info">${result.sizeColor}</p>
     </section>
 
-    <!-- 셀링포인트 3가지 -->
+    <!-- 2. 메인대표사진 -->
+    <section class="main-image-section">
+      <img src="${mainImage?.processed || mainImage?.data}" alt="대표이미지">
+    </section>
+
+    ${sizeChartImage ? `
+    <!-- 3. 사이즈표 -->
+    <section class="size-chart-section">
+      <img src="${sizeChartImage.processed || sizeChartImage.data}" alt="사이즈표">
+    </section>
+    ` : ''}
+
+    <!-- 4. 셀링포인트 3가지 -->
     <section class="selling-section">
       <h2 class="selling-title">이 상품이 특별한 이유</h2>
       ${result.sellingPoints
@@ -223,14 +282,28 @@ export function generateDetailPageHTML(
         .join('')}
     </section>
 
-    <!-- 착장사진 + 문구 -->
+    ${colorList.length > 0 ? `
+    <!-- 5. 대표컬러 표시 -->
+    <section class="color-display-section">
+      <h2 class="color-title">COLOR</h2>
+      <div class="color-list">
+        ${colorList.map(color => `
+          <span class="color-item ${color.isMain ? 'active' : ''}">
+            <span class="color-dot ${color.isMain ? 'filled' : 'empty'}"></span>
+            ${color.name}
+          </span>
+        `).join('')}
+      </div>
+    </section>
+    ` : ''}
+
+    <!-- 6. 대표컬러 코디컷 + 문구 -->
     <section class="outfit-section">
-      ${actualOutfitImages
-        .slice(0, 6)
+      ${outfitImages
         .map(
           (img, idx) => `
         <div class="outfit-item">
-          <img src="${img.processed || img.data}" alt="착장${idx + 1}">
+          <img src="${img.processed || img.data}" alt="코디컷${idx + 1}">
           ${
             result.outfitCopies[idx]
               ? `
@@ -246,21 +319,7 @@ export function generateDetailPageHTML(
         .join('')}
     </section>
 
-    ${
-      detailImages.length > 0
-        ? `
-    <!-- 디테일컷 -->
-    <section class="detail-section">
-      <h2 class="detail-title">DETAIL</h2>
-      <div class="detail-images">
-        ${detailImages.map((img) => `<img src="${img.processed || img.data}" alt="디테일">`).join('')}
-      </div>
-    </section>
-    `
-        : ''
-    }
-
-    <!-- 상품 정보 -->
+    <!-- 7. 상품 정보 -->
     <section class="product-info-section">
       <h2 class="product-info-title">PRODUCT INFO</h2>
       <div class="product-info-grid">

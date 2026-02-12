@@ -24,9 +24,24 @@ export interface ImageItem {
   id: string
   file: File
   preview: string
-  type: 'main' | 'outfit' | 'detail'
+  type: 'main' | 'outfit' | 'detail' | 'sizeChart'
   editedPreview?: string // 편집된 이미지 URL
   cropData?: CropData // 크롭 데이터
+}
+
+// 컬러별 코디컷 데이터
+export interface ColorOutfit {
+  id: string
+  colorName: string
+  isMain: boolean
+  images: ImageItem[]
+}
+
+// 새로운 이미지 데이터 구조
+export interface ImageData {
+  mainImage: ImageItem | null
+  sizeChartImage: ImageItem | null
+  colorOutfits: ColorOutfit[]
 }
 
 export interface ProductInfo {
@@ -65,7 +80,15 @@ export default function Home() {
   // 앱 단계 상태
   const [appStep, setAppStep] = useState<AppStep>('input')
 
+  // 기존 이미지 상태 (호환성 유지)
   const [images, setImages] = useState<ImageItem[]>([])
+
+  // 새로운 이미지 데이터 구조
+  const [imageData, setImageData] = useState<ImageData>({
+    mainImage: null,
+    sizeChartImage: null,
+    colorOutfits: []
+  })
   const [productInfo, setProductInfo] = useState<ProductInfo>({
     gender: 'female',
     features: '',
@@ -106,8 +129,14 @@ export default function Home() {
   const [showPromptManager, setShowPromptManager] = useState(false)
 
   const handleGenerate = async () => {
-    if (images.length === 0) {
-      setError('이미지를 업로드해주세요')
+    // 최소한 메인 이미지와 컬러 코디컷이 있어야 함
+    const mainColor = imageData.colorOutfits.find(c => c.isMain)
+    if (!imageData.mainImage) {
+      setError('메인 대표사진을 업로드해주세요')
+      return
+    }
+    if (!mainColor || mainColor.images.length === 0) {
+      setError('대표 컬러의 코디컷 이미지를 업로드해주세요')
       return
     }
 
@@ -116,32 +145,38 @@ export default function Home() {
 
     try {
       // 이미지를 base64로 변환 후 압축 (Vercel 4.5MB 제한 대응)
-      // 편집된 이미지가 있으면 editedPreview 사용, 없으면 원본 파일 사용
-      const imageData = await Promise.all(
-        images.map(async (img) => {
-          let base64: string
-          if (img.editedPreview) {
-            // 편집된 이미지 사용 (이미 base64)
-            base64 = img.editedPreview
-          } else {
-            // 원본 파일을 base64로 변환
-            base64 = await fileToBase64(img.file)
-          }
-          // API 전송용으로 압축 (800px, 70% 품질)
-          const compressed = await compressImageForAPI(base64, 800, 0.7)
-          return {
-            type: img.type,
-            data: compressed,
-          }
-        })
-      )
+      const allImages: { type: string; data: string }[] = []
+
+      // 메인 이미지
+      if (imageData.mainImage) {
+        const base64 = imageData.mainImage.editedPreview || await fileToBase64(imageData.mainImage.file)
+        const compressed = await compressImageForAPI(base64, 800, 0.7)
+        allImages.push({ type: 'main', data: compressed })
+      }
+
+      // 대표 컬러의 코디컷 이미지들
+      for (const img of mainColor.images) {
+        const base64 = img.editedPreview || await fileToBase64(img.file)
+        const compressed = await compressImageForAPI(base64, 800, 0.7)
+        allImages.push({ type: 'outfit', data: compressed })
+      }
+
+      // 대표 컬러 코디컷 개수
+      const outfitImageCount = mainColor.images.length
+
+      // 모든 컬러 목록 (컬러명 추출)
+      const colorNames = imageData.colorOutfits
+        .filter(c => c.colorName)
+        .map(c => c.colorName)
+        .join(', ')
 
       // 저장된 프롬프트 가져오기
       const savedPrompt = getSavedPrompt(productInfo.gender)
       const prompt = applyVariables(savedPrompt, {
         features: productInfo.features,
         size: productInfo.size,
-        colors: productInfo.colors,
+        colors: colorNames || productInfo.colors,
+        outfitImageCount: outfitImageCount.toString(),
       })
 
       const response = await fetch('/api/generate', {
@@ -150,9 +185,13 @@ export default function Home() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          images: imageData,
-          productInfo,
+          images: allImages,
+          productInfo: {
+            ...productInfo,
+            colors: colorNames || productInfo.colors,
+          },
           customPrompt: prompt,
+          outfitImageCount,
         }),
       })
 
@@ -179,30 +218,29 @@ export default function Home() {
       }
       setResult(data)
 
-      // 이미지 처리 (크롭) - 편집된 이미지는 그대로 사용, 미편집 이미지만 자동 크롭
-      const processedData = await Promise.all(
-        images.map(async (img, index) => {
-          if (img.editedPreview) {
-            // 편집된 이미지는 그대로 사용 (이미 크롭됨)
-            return {
-              type: img.type,
-              data: img.editedPreview,
-              processed: img.editedPreview,
-            }
-          } else {
-            // 미편집 이미지는 자동 크롭 적용
-            const base64 = await fileToBase64(img.file)
-            const cropped = index === 0
-              ? await cropToSquare(base64)
-              : await cropTo3x4(base64)
-            return {
-              type: img.type,
-              data: base64,
-              processed: cropped,
-            }
-          }
-        })
-      )
+      // 이미지 처리 - 새 구조에 맞게 처리
+      const processedData: ProcessedImage[] = []
+
+      // 메인 이미지
+      if (imageData.mainImage) {
+        const base64 = imageData.mainImage.editedPreview || await fileToBase64(imageData.mainImage.file)
+        const cropped = imageData.mainImage.editedPreview ? base64 : await cropToSquare(base64)
+        processedData.push({ type: 'main', data: base64, processed: cropped })
+      }
+
+      // 사이즈표 이미지
+      if (imageData.sizeChartImage) {
+        const base64 = imageData.sizeChartImage.editedPreview || await fileToBase64(imageData.sizeChartImage.file)
+        processedData.push({ type: 'sizeChart', data: base64, processed: base64 })
+      }
+
+      // 대표 컬러 코디컷 이미지들
+      for (const img of mainColor.images) {
+        const base64 = img.editedPreview || await fileToBase64(img.file)
+        const cropped = img.editedPreview ? base64 : await cropTo3x4(base64)
+        processedData.push({ type: 'outfit', data: base64, processed: cropped })
+      }
+
       setProcessedImages(processedData)
 
       // 결과 화면으로 이동
@@ -223,7 +261,12 @@ export default function Home() {
     setIsProcessingHTML(true)
 
     try {
-      const html = generateDetailPageHTML(processedImages, result)
+      // 컬러 정보 추출
+      const colors = imageData.colorOutfits
+        .filter(c => c.colorName)
+        .map(c => ({ name: c.colorName, isMain: c.isMain }))
+
+      const html = generateDetailPageHTML(processedImages, result, colors)
       setGeneratedHTML(html)
       setShowHTMLPreview(true)
     } catch (err) {
@@ -372,6 +415,11 @@ export default function Home() {
   const handleNewProduct = () => {
     // 모든 상태 초기화
     setImages([])
+    setImageData({
+      mainImage: null,
+      sizeChartImage: null,
+      colorOutfits: []
+    })
     setProductInfo({
       gender: 'female',
       features: '',
@@ -517,7 +565,7 @@ export default function Home() {
         {/* 이미지 업로드 */}
         <section className="bg-white rounded-xl shadow-sm p-6">
           <h2 className="text-xl font-semibold mb-4 text-gray-700">1. 이미지 업로드</h2>
-          <ImageUploader images={images} setImages={setImages} />
+          <ImageUploader imageData={imageData} setImageData={setImageData} />
         </section>
 
         {/* 상품 정보 입력 */}
