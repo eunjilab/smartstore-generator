@@ -1,5 +1,5 @@
 // 네이버 커머스 API 유틸리티
-import crypto from 'crypto'
+import bcrypt from 'bcryptjs'
 
 const COMMERCE_API_URL = 'https://api.commerce.naver.com'
 
@@ -18,16 +18,16 @@ let tokenCache: TokenCache | null = null
 
 /**
  * BCRYPT 타임스탬프 기반 서명 생성
+ * 네이버 커머스 API는 bcrypt 해시를 요구합니다
  */
 function generateSignature(clientId: string, clientSecret: string, timestamp: number): string {
   // 밑줄로 연결: clientId_timestamp
   const password = `${clientId}_${timestamp}`
 
-  // bcrypt는 Node.js에서 직접 사용하기 어려우므로
-  // 네이버 API는 실제로는 SHA-256 HMAC을 사용합니다
-  const hmac = crypto.createHmac('sha256', clientSecret)
-  hmac.update(password)
-  return hmac.digest('base64')
+  // bcrypt 해시 생성 (clientSecret을 salt로 사용)
+  // 네이버 API는 $2a$ 형식의 bcrypt를 요구
+  const hashed = bcrypt.hashSync(password, clientSecret)
+  return hashed
 }
 
 /**
