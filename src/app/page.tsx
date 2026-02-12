@@ -577,7 +577,7 @@ export default function Home() {
         {/* 생성 버튼 */}
         <button
           onClick={handleGenerate}
-          disabled={isLoading || images.length === 0}
+          disabled={isLoading || !imageData.mainImage || !imageData.colorOutfits.some(c => c.isMain && c.images.length > 0)}
           className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-xl hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
         >
           {isLoading ? (
