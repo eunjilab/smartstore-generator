@@ -26,6 +26,33 @@ interface ColorInfo {
   isMain: boolean
 }
 
+// 컬러명에 따른 CSS 색상 반환
+function getColorCode(colorName: string): string {
+  const colorMap: { [key: string]: string } = {
+    '블랙': '#1a1a1a',
+    '화이트': '#ffffff',
+    '아이보리': '#FFFFF0',
+    '베이지': '#D4BC94',
+    '그레이': '#808080',
+    '네이비': '#1F3A5F',
+    '브라운': '#8B4513',
+    '카키': '#78866B',
+    '핑크': '#FFB6C1',
+    '블루': '#4169E1',
+    '레드': '#DC143C',
+    '오렌지': '#FF8C00',
+    '옐로우': '#FFD700',
+    '그린': '#228B22',
+    '퍼플': '#8B008B',
+    '와인': '#722F37',
+    '민트': '#98FF98',
+    '스카이블루': '#87CEEB',
+    '차콜': '#36454F',
+    '크림': '#FFFDD0',
+  }
+  return colorMap[colorName] || '#1a1a1a'
+}
+
 export function generateDetailPageHTML(
   images: ProcessedImage[],
   result: GeneratedResult,
@@ -173,12 +200,8 @@ export function generateDetailPageHTML(
       margin-right: 8px;
       vertical-align: middle;
     }
-    .color-dot.filled {
-      background: #1a1a1a;
-    }
-    .color-dot.empty {
-      border: 2px solid #999;
-      background: transparent;
+    .color-dot {
+      border: 2px solid #ddd;
     }
 
     /* 6. 대표컬러 코디컷 + 문구 */
@@ -289,7 +312,7 @@ export function generateDetailPageHTML(
       <div class="color-list">
         ${colorList.map(color => `
           <span class="color-item ${color.isMain ? 'active' : ''}">
-            <span class="color-dot ${color.isMain ? 'filled' : 'empty'}"></span>
+            <span class="color-dot" style="background-color: ${getColorCode(color.name)};${color.isMain ? ' box-shadow: 0 0 0 2px #333;' : ''}"></span>
             ${color.name}
           </span>
         `).join('')}
