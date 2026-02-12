@@ -18,16 +18,18 @@ let tokenCache: TokenCache | null = null
 
 /**
  * BCRYPT 타임스탬프 기반 서명 생성
- * 네이버 커머스 API는 bcrypt 해시를 요구합니다
+ * 네이버 커머스 API는 bcrypt 해시 + base64 인코딩을 요구합니다
  */
 function generateSignature(clientId: string, clientSecret: string, timestamp: number): string {
   // 밑줄로 연결: clientId_timestamp
   const password = `${clientId}_${timestamp}`
 
   // bcrypt 해시 생성 (clientSecret을 salt로 사용)
-  // 네이버 API는 $2a$ 형식의 bcrypt를 요구
   const hashed = bcrypt.hashSync(password, clientSecret)
-  return hashed
+
+  // base64 인코딩 (네이버 API 요구사항)
+  const base64Encoded = Buffer.from(hashed).toString('base64')
+  return base64Encoded
 }
 
 /**
@@ -49,19 +51,16 @@ export async function getAccessToken(): Promise<string> {
   const timestamp = Date.now()
   const signature = generateSignature(clientId, clientSecret, timestamp)
 
-  // Base64 인코딩: clientId:signature
-  const credentials = Buffer.from(`${clientId}:${signature}`).toString('base64')
-
   const response = await fetch(`${COMMERCE_API_URL}/external/v1/oauth2/token`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
-      'Authorization': `Basic ${credentials}`,
     },
     body: new URLSearchParams({
-      grant_type: 'client_credentials',
+      client_id: clientId,
       timestamp: timestamp.toString(),
       client_secret_sign: signature,
+      grant_type: 'client_credentials',
       type: 'SELF',
     }),
   })
