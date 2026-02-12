@@ -68,7 +68,8 @@ export async function getAccessToken(): Promise<string> {
 
   if (!response.ok) {
     const error = await response.text()
-    throw new Error(`토큰 발급 실패: ${error}`)
+    console.error('토큰 발급 실패 상세:', { status: response.status, error })
+    throw new Error(`토큰 발급 실패 (${response.status}): ${error}`)
   }
 
   const data: TokenResponse = await response.json()
@@ -113,7 +114,8 @@ export async function uploadImage(
 
   if (!response.ok) {
     const error = await response.text()
-    throw new Error(`이미지 업로드 실패: ${error}`)
+    console.error('이미지 업로드 실패 상세:', { status: response.status, error, imageType })
+    throw new Error(`이미지 업로드 실패 (${response.status}): ${error}`)
   }
 
   const data = await response.json()

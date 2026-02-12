@@ -24,8 +24,9 @@ export async function POST(request: NextRequest) {
           const url = await uploadImage(img.data, img.type)
           return { url, type: img.type, success: true }
         } catch (error) {
-          console.error('이미지 업로드 실패:', error)
-          return { url: '', type: img.type, success: false, error: String(error) }
+          const errorMsg = error instanceof Error ? error.message : String(error)
+          console.error('이미지 업로드 실패:', { type: img.type, error: errorMsg })
+          return { url: '', type: img.type, success: false, error: errorMsg }
         }
       })
     )

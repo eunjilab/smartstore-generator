@@ -331,9 +331,11 @@ export default function Home() {
 
       const uploadResult = await uploadResponse.json()
       const uploadedImages = uploadResult.uploadedImages.filter((img: { success: boolean }) => img.success)
+      const failedImages = uploadResult.uploadedImages.filter((img: { success: boolean }) => !img.success)
 
       if (uploadedImages.length === 0) {
-        throw new Error('이미지 업로드에 실패했습니다')
+        const errorDetails = failedImages.map((img: { error?: string }) => img.error).join(', ')
+        throw new Error(`이미지 업로드에 실패했습니다: ${errorDetails}`)
       }
 
       setRegistrationProgress(50)
