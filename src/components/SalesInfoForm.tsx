@@ -22,6 +22,7 @@ interface Props {
   suggestedCategoryId?: string
   inputSize?: string
   inputColors?: string
+  hideOptions?: boolean  // 사이즈/컬러 옵션 숨기기 (이미 ProductForm에서 입력한 경우)
 }
 
 // 인기 카테고리 목록
@@ -50,6 +51,7 @@ export default function SalesInfoForm({
   suggestedCategoryId,
   inputSize,
   inputColors,
+  hideOptions = false,
 }: Props) {
   const [showCategorySearch, setShowCategorySearch] = useState(false)
 
@@ -277,57 +279,61 @@ export default function SalesInfoForm({
         )}
       </div>
 
-      {/* 사이즈 옵션 */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          사이즈 옵션
-          {salesInfo.sizes.length > 0 && (
-            <span className="ml-2 text-green-600">({salesInfo.sizes.join(', ')})</span>
-          )}
-        </label>
-        <div className="flex flex-wrap gap-2">
-          {SIZE_OPTIONS.map((size) => (
-            <button
-              key={size}
-              type="button"
-              onClick={() => toggleSize(size)}
-              className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${
-                salesInfo.sizes.includes(size)
-                  ? 'bg-green-600 text-white border-green-600'
-                  : 'bg-white text-gray-700 border-gray-300 hover:border-green-500'
-              }`}
-            >
-              {size}
-            </button>
-          ))}
+      {/* 사이즈 옵션 - hideOptions가 false일 때만 표시 */}
+      {!hideOptions && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            사이즈 옵션
+            {salesInfo.sizes.length > 0 && (
+              <span className="ml-2 text-green-600">({salesInfo.sizes.join(', ')})</span>
+            )}
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {SIZE_OPTIONS.map((size) => (
+              <button
+                key={size}
+                type="button"
+                onClick={() => toggleSize(size)}
+                className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${
+                  salesInfo.sizes.includes(size)
+                    ? 'bg-green-600 text-white border-green-600'
+                    : 'bg-white text-gray-700 border-gray-300 hover:border-green-500'
+                }`}
+              >
+                {size}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* 컬러 옵션 */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          컬러 옵션
-          {salesInfo.colors.length > 0 && (
-            <span className="ml-2 text-green-600">({salesInfo.colors.join(', ')})</span>
-          )}
-        </label>
-        <div className="flex flex-wrap gap-2">
-          {COLOR_OPTIONS.map((color) => (
-            <button
-              key={color}
-              type="button"
-              onClick={() => toggleColor(color)}
-              className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${
-                salesInfo.colors.includes(color)
-                  ? 'bg-green-600 text-white border-green-600'
-                  : 'bg-white text-gray-700 border-gray-300 hover:border-green-500'
-              }`}
-            >
-              {color}
-            </button>
-          ))}
+      {/* 컬러 옵션 - hideOptions가 false일 때만 표시 */}
+      {!hideOptions && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            컬러 옵션
+            {salesInfo.colors.length > 0 && (
+              <span className="ml-2 text-green-600">({salesInfo.colors.join(', ')})</span>
+            )}
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {COLOR_OPTIONS.map((color) => (
+              <button
+                key={color}
+                type="button"
+                onClick={() => toggleColor(color)}
+                className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${
+                  salesInfo.colors.includes(color)
+                    ? 'bg-green-600 text-white border-green-600'
+                    : 'bg-white text-gray-700 border-gray-300 hover:border-green-500'
+                }`}
+              >
+                {color}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }

@@ -595,7 +595,22 @@ export default function Home() {
         <section className="bg-white rounded-xl shadow-sm p-6">
           <h2 className="text-xl font-semibold mb-4 text-gray-700">2. 상품 정보</h2>
           <ProductForm productInfo={productInfo} setProductInfo={updateProductInfo} />
-          <p className="text-xs text-gray-500 mt-2">※ 사이즈/컬러는 문구 생성과 스마트스토어 등록에 함께 사용됩니다</p>
+
+          {/* 판매 정보 (사이즈/컬러 제외 - 위에서 이미 입력) */}
+          <div className="mt-6 pt-6 border-t">
+            <h3 className="text-lg font-medium mb-4 text-gray-700 flex items-center gap-2">
+              <span className="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-xs font-bold">N</span>
+              스마트스토어 등록 정보
+            </h3>
+            <SalesInfoForm
+              salesInfo={salesInfo}
+              setSalesInfo={setSalesInfo}
+              suggestedProductName=""
+              inputSize={productInfo.size}
+              inputColors={productInfo.colors}
+              hideOptions={true}
+            />
+          </div>
         </section>
 
         {/* 생성 버튼 */}
@@ -658,35 +673,21 @@ export default function Home() {
               </div>
             </section>
 
-            {/* 네이버 스마트스토어 등록 */}
+            {/* 스마트스토어 등록 버튼 */}
             <section className="bg-white rounded-xl shadow-sm p-6">
-              <h2 className="text-xl font-semibold mb-4 text-gray-700 flex items-center gap-2">
-                <span className="w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-bold">N</span>
-                4. 스마트스토어 등록 정보
-              </h2>
-
-              <SalesInfoForm
-                salesInfo={salesInfo}
-                setSalesInfo={setSalesInfo}
-                suggestedProductName={result.productName || result.hookingCopy}
-                inputSize={productInfo.size}
-                inputColors={productInfo.colors}
-              />
-
-              {/* 등록 확인 버튼 */}
               <button
                 onClick={handleShowConfirm}
                 disabled={!salesInfo.productName || !salesInfo.salePrice || !salesInfo.categoryId}
-                className="w-full mt-6 py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold rounded-xl hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+                className="w-full py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold rounded-xl hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                등록 정보 확인하기
+                <span className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center text-sm font-bold">N</span>
+                스마트스토어에 등록하기
               </button>
-              <p className="text-center text-xs text-gray-500 mt-2">
-                다음 단계에서 모든 정보를 확인 후 등록합니다
-              </p>
+              {(!salesInfo.productName || !salesInfo.salePrice || !salesInfo.categoryId) && (
+                <p className="text-center text-xs text-red-500 mt-2">
+                  상품명, 판매가, 카테고리를 먼저 입력해주세요 (위 2번 섹션)
+                </p>
+              )}
             </section>
           </>
         )}
