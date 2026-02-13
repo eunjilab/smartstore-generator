@@ -24,8 +24,17 @@ function generateSignature(clientId: string, clientSecret: string, timestamp: nu
   // 밑줄로 연결: clientId_timestamp
   const password = `${clientId}_${timestamp}`
 
+  // clientSecret이 유효한 bcrypt salt인지 확인하고 보완
+  let salt = clientSecret
+  if (salt.startsWith('$2a$') || salt.startsWith('$2b$')) {
+    // salt 길이가 부족하면 패딩 추가 (29자가 표준)
+    while (salt.length < 29) {
+      salt += '.'
+    }
+  }
+
   // bcrypt 해시 생성 (clientSecret을 salt로 사용)
-  const hashed = bcrypt.hashSync(password, clientSecret)
+  const hashed = bcrypt.hashSync(password, salt)
 
   // base64 인코딩 (네이버 API 요구사항)
   const base64Encoded = Buffer.from(hashed).toString('base64')
@@ -213,6 +222,7 @@ export async function registerProduct(product: ProductRegistration): Promise<{ p
       deliveryInfo: {
         deliveryType: 'DELIVERY',
         deliveryAttributeType: 'NORMAL',
+        deliveryCompany: 'CJGLS', // CJ대한통운 (필수)
         deliveryFee: {
           deliveryFeeType: product.deliveryFeeType,
           baseFee: product.deliveryFee,
@@ -245,23 +255,8 @@ export async function registerProduct(product: ProductRegistration): Promise<{ p
           content: '상세페이지 참조',
         },
         sellerCodeInfo: {},
-        optionInfo: product.options ? {
-          simpleOptionSortType: 'CREATE',
-          optionSimple: [
-            {
-              id: 1,
-              groupName: product.options.optionName1,
-              name: product.options.optionValue1,
-              usable: true,
-            },
-            ...(product.options.optionName2 ? [{
-              id: 2,
-              groupName: product.options.optionName2,
-              name: product.options.optionValue2,
-              usable: true,
-            }] : []),
-          ],
-        } : undefined,
+        // 옵션 정보는 카테고리별로 다르게 처리 필요 - 일단 비활성화
+        // optionInfo: product.options ? { ... } : undefined,
         certificationTargetExcludeContent: {
           childCertifiedProductExclusionYn: true,
           kcExemptionType: 'OVERSEAS',
