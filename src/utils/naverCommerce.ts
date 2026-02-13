@@ -169,6 +169,44 @@ export interface ProductOption {
   optionValue2?: string  // 예: "블랙, 화이트"
 }
 
+/**
+ * 옵션 조합 생성 (사이즈 x 색상)
+ */
+function generateOptionCombinations(options: ProductOption, totalStock: number) {
+  const sizes = options.optionValue1.split(/[,\s]+/).map(s => s.trim()).filter(Boolean)
+  const colors = options.optionValue2?.split(/[,\s]+/).map(s => s.trim()).filter(Boolean) || []
+
+  const combinations: any[] = []
+  const stockPerOption = Math.floor(totalStock / (sizes.length * Math.max(colors.length, 1)))
+
+  if (colors.length > 0) {
+    // 사이즈 x 색상 조합
+    for (const size of sizes) {
+      for (const color of colors) {
+        combinations.push({
+          stockQuantity: stockPerOption || 10,
+          price: 0,
+          usable: true,
+          optionName1: size,
+          optionName2: color,
+        })
+      }
+    }
+  } else {
+    // 사이즈만
+    for (const size of sizes) {
+      combinations.push({
+        stockQuantity: stockPerOption || 10,
+        price: 0,
+        usable: true,
+        optionName1: size,
+      })
+    }
+  }
+
+  return combinations
+}
+
 export interface ProductRegistration {
   // 기본 정보
   name: string
@@ -255,8 +293,15 @@ export async function registerProduct(product: ProductRegistration): Promise<{ p
           content: '상세페이지 참조',
         },
         sellerCodeInfo: {},
-        // 옵션 정보는 카테고리별로 다르게 처리 필요 - 일단 비활성화
-        // optionInfo: product.options ? { ... } : undefined,
+        // 조합형 옵션 (사이즈 x 색상)
+        optionInfo: product.options ? {
+          optionCombinationSortType: 'CREATE',
+          optionCombinationGroupNames: {
+            optionGroupName1: product.options.optionName1 || '사이즈',
+            ...(product.options.optionName2 && { optionGroupName2: product.options.optionName2 }),
+          },
+          optionCombinations: generateOptionCombinations(product.options, product.stockQuantity),
+        } : undefined,
         certificationTargetExcludeContent: {
           childCertifiedProductExclusionYn: true,
           kcExemptionType: 'OVERSEAS',
