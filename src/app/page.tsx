@@ -128,6 +128,27 @@ export default function Home() {
   // 프롬프트 관리 모달 상태
   const [showPromptManager, setShowPromptManager] = useState(false)
 
+  // 사이즈/컬러 자동 동기화: ProductForm → SalesInfo
+  const updateProductInfo = (newInfo: ProductInfo | ((prev: ProductInfo) => ProductInfo)) => {
+    setProductInfo((prev) => {
+      const updated = typeof newInfo === 'function' ? newInfo(prev) : newInfo
+
+      // 사이즈 파싱하여 salesInfo에도 반영
+      if (updated.size !== prev.size) {
+        const sizes = updated.size.split(/[,/·\s]+/).map(s => s.trim().toUpperCase()).filter(Boolean)
+        setSalesInfo(si => ({ ...si, sizes }))
+      }
+
+      // 컬러 파싱하여 salesInfo에도 반영
+      if (updated.colors !== prev.colors) {
+        const colors = updated.colors.split(/[,/·\s]+/).map(s => s.trim()).filter(Boolean)
+        setSalesInfo(si => ({ ...si, colors }))
+      }
+
+      return updated
+    })
+  }
+
   const handleGenerate = async () => {
     // 최소한 메인 이미지와 컬러 코디컷이 있어야 함
     const mainColor = imageData.colorOutfits.find(c => c.isMain)
@@ -573,7 +594,8 @@ export default function Home() {
         {/* 상품 정보 입력 */}
         <section className="bg-white rounded-xl shadow-sm p-6">
           <h2 className="text-xl font-semibold mb-4 text-gray-700">2. 상품 정보</h2>
-          <ProductForm productInfo={productInfo} setProductInfo={setProductInfo} />
+          <ProductForm productInfo={productInfo} setProductInfo={updateProductInfo} />
+          <p className="text-xs text-gray-500 mt-2">※ 사이즈/컬러는 문구 생성과 스마트스토어 등록에 함께 사용됩니다</p>
         </section>
 
         {/* 생성 버튼 */}
